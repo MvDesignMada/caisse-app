@@ -1,0 +1,152 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { exporterExcel, exporterCSV, exporterPDF, exporterRapportUniquePDF } from '../lib/export'
+import { Eye, Pencil, Trash2, Download, FileSpreadsheet, FileText } from 'lucide-react'
+import MontantInput from '../components/MontantInput'
+
+export default function Historique() {
+  const [rapports, setRapports] = useState([])
+  const [magasins, setMagasins] = useState([])
+  const [filtreMagasin, setFiltreMagasin] = useState('')
+  const [filtreDate, setFiltreDate] = useState('')
+  const [recherche, setRecherche] = useState('')
+  const [rapportSelectionné, setRapportSelectionné] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { chargerMagasins(); chargerRapports() }, [filtreMagasin, filtreDate])
+
+  async function chargerMagasins() {
+    const { data } = await supabase.from('magasins').select('*')
+    setMagasins(data || [])
+  }
+
+  async function chargerRapports() {
+    setLoading(true)
+    let query = supabase.from('rapports').select('*, magasins(nom), profils(nom), sorties(*)').order('date', { ascending: false })
+    if (filtreMagasin) query = query.eq('magasin_id', filtreMagasin)
+    if (filtreDate) query = query.eq('date', filtreDate)
+    const { data } = await query
+    setRapports(data || [])
+    setLoading(false)
+  }
+
+  const rapportsFiltrés = rapports.filter((r) => {
+    if (!recherche) return true
+    const s = recherche.toLowerCase()
+    return (
+      r.profils?.nom?.toLowerCase().includes(s) ||
+      r.magasins?.nom?.toLowerCase().includes(s) ||
+      String(r.espèces).includes(s) ||
+      String(r.différés).includes(s)
+    )
+  })
+
+  async function supprimerRapport(id) {
+    if (!confirm('Supprimer définitivement ce rapport ?')) return
+    await supabase.from('rapports').delete().eq('id', id)
+    chargerRapports()
+  }
+
+  async function sauvegarderModification() {
+    const r = rapportSelectionné
+    await supabase.from('rapports').update({
+      espèces: r.espèces, chèque: r.chèque, mobile_money: r.mobile_money,
+      différés: r.différés, solde_veille: r.solde_veille, observation: r.observation,
+    }).eq('id', r.id)
+    setRapportSelectionné(null)
+    chargerRapports()
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-bold">Historique des rapports</h1>
+
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow flex flex-wrap gap-2">
+        <input placeholder="Rechercher..." value={recherche} onChange={(e) => setRecherche(e.target.value)} className="input-big flex-1 min-w-[150px]" />
+        <select value={filtreMagasin} onChange={(e) => setFiltreMagasin(e.target.value)} className="input-big w-auto">
+          <option value="">Tous les magasins</option>
+          {magasins.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
+        </select>
+        <input type="date" value={filtreDate} onChange={(e) => setFiltreDate(e.target.value)} className="input-big w-auto" />
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={() => exporterExcel(rapportsFiltrés)} className="btn-big bg-primary-600 text-white flex items-center gap-2 text-sm py-2 px-4">
+          <FileSpreadsheet size={16} /> Excel
+        </button>
+        <button onClick={() => exporterCSV(rapportsFiltrés)} className="btn-big bg-primary-600 text-white flex items-center gap-2 text-sm py-2 px-4">
+          <Download size={16} /> CSV
+        </button>
+        <button onClick={() => exporterPDF(rapportsFiltrés)} className="btn-big bg-primary-600 text-white flex items-center gap-2 text-sm py-2 px-4">
+          <FileText size={16} /> PDF
+        </button>
+      </div>
+
+      {loading ? <p>Chargement...</p> : (
+        <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-2xl shadow">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
+                <th className="p-3">Date</th><th className="p-3">Magasin</th><th className="p-3">Responsable</th>
+                <th className="p-3">Espèces</th><th className="p-3">Chèque</th><th className="p-3">Mobile Money</th>
+                <th className="p-3">Différés</th><th className="p-3">Encaissements</th><th className="p-3">Sorties</th>
+                <th className="p-3">Résultat</th><th className="p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rapportsFiltrés.map((r) => (
+                <tr key={r.id} className="border-b dark:border-gray-700">
+                  <td className="p-3">{r.date}</td>
+                  <td className="p-3">{r.magasins?.nom}</td>
+                  <td className="p-3">{r.profils?.nom}</td>
+                  <td className="p-3">{Number(r.espèces).toLocaleString()}</td>
+                  <td className="p-3">{Number(r.chèque).toLocaleString()}</td>
+                  <td className="p-3">{Number(r.mobile_money).toLocaleString()}</td>
+                  <td className="p-3">{Number(r.différés).toLocaleString()}</td>
+                  <td className="p-3 text-primary-700 dark:text-primary-400">{Number(r.total_encaissements || 0).toLocaleString()}</td>
+                  <td className="p-3">{Number(r.total_sorties).toLocaleString()}</td>
+                  <td className="p-3 font-semibold">{Number(r.résultat).toLocaleString()}</td>
+                  <td className="p-3 flex gap-2">
+                    <button onClick={() => exporterRapportUniquePDF(r)}><Eye size={18} /></button>
+                    <button onClick={() => setRapportSelectionné({ ...r })}><Pencil size={18} /></button>
+                    <button onClick={() => supprimerRapport(r.id)} className="text-red-500"><Trash2 size={18} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {rapportSelectionné && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-md space-y-3">
+            <h2 className="font-bold text-lg">Modifier le rapport du {rapportSelectionné.date}</h2>
+            <label className="text-sm">Espèces</label>
+            <MontantInput className="input-big" value={rapportSelectionné.espèces}
+              onChange={(v) => setRapportSelectionné({ ...rapportSelectionné, espèces: v })} />
+            <label className="text-sm">Chèque</label>
+            <MontantInput className="input-big" value={rapportSelectionné.chèque}
+              onChange={(v) => setRapportSelectionné({ ...rapportSelectionné, chèque: v })} />
+            <label className="text-sm">Mobile Money</label>
+            <MontantInput className="input-big" value={rapportSelectionné.mobile_money}
+              onChange={(v) => setRapportSelectionné({ ...rapportSelectionné, mobile_money: v })} />
+            <label className="text-sm">Différés</label>
+            <MontantInput className="input-big" value={rapportSelectionné.différés}
+              onChange={(v) => setRapportSelectionné({ ...rapportSelectionné, différés: v })} />
+            <label className="text-sm">Solde veille</label>
+            <MontantInput className="input-big" value={rapportSelectionné.solde_veille}
+              onChange={(v) => setRapportSelectionné({ ...rapportSelectionné, solde_veille: v })} />
+            <label className="text-sm">Observation</label>
+            <textarea className="input-big" value={rapportSelectionné.observation || ''}
+              onChange={(e) => setRapportSelectionné({ ...rapportSelectionné, observation: e.target.value })} />
+            <div className="flex gap-2 pt-2">
+              <button onClick={sauvegarderModification} className="btn-big bg-primary-600 text-white flex-1">Enregistrer</button>
+              <button onClick={() => setRapportSelectionné(null)} className="btn-big bg-gray-300 dark:bg-gray-700 flex-1">Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

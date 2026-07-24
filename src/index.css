@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { -webkit-tap-highlight-color: transparent; }
+body { font-family: system-ui, -apple-system, sans-serif; }
+
+@layer components {
+  .btn-big {
+    @apply text-lg font-semibold py-4 px-6 rounded-2xl shadow-md active:scale-95 transition-transform;
+  }
+  .input-big {
+    @apply w-full text-lg p-4 rounded-xl border-2 border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:border-primary-500 focus:outline-none;
+  }
+}
