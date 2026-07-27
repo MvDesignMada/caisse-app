@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 export default function CategorieSortiePicker({ valeur, onChange }) {
   const [catégories, setCatégories] = useState([])
+  const [recherche, setRecherche] = useState('')
   const [ajoutEnCours, setAjoutEnCours] = useState(false)
   const [nouvelleCatégorie, setNouvelleCatégorie] = useState('')
 
@@ -29,12 +30,26 @@ export default function CategorieSortiePicker({ valeur, onChange }) {
     }
     setNouvelleCatégorie('')
     setAjoutEnCours(false)
+    setRecherche('')
   }
+
+  const catégoriesFiltrées = catégories.filter((c) =>
+    c.nom.toLowerCase().includes(recherche.trim().toLowerCase())
+  )
 
   return (
     <div>
+      <div className="relative mb-2">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          placeholder="Filtrer les catégories..." value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          className="input-big pl-9 text-sm py-2"
+        />
+      </div>
+
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {catégories.map((cat) => (
+        {catégoriesFiltrées.map((cat) => (
           <button
             key={cat.id}
             type="button"
@@ -48,9 +63,12 @@ export default function CategorieSortiePicker({ valeur, onChange }) {
             {cat.nom}
           </button>
         ))}
+        {catégoriesFiltrées.length === 0 && (
+          <p className="text-sm text-gray-400 py-3">Aucune catégorie ne correspond — crée-la ci-dessous.</p>
+        )}
         <button
           type="button"
-          onClick={() => setAjoutEnCours(true)}
+          onClick={() => { setAjoutEnCours(true); setNouvelleCatégorie(recherche) }}
           className="shrink-0 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-gray-400 dark:border-gray-500 text-gray-500 dark:text-gray-400 flex items-center gap-1"
         >
           <Plus size={16} /> Nouvelle
