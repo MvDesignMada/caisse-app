@@ -90,7 +90,7 @@ export default function Historique() {
                 <th className="p-3">Date</th><th className="p-3">Magasin</th><th className="p-3">Responsable</th>
                 <th className="p-3">Espèces</th><th className="p-3">Chèque</th><th className="p-3">Mobile Money</th>
                 <th className="p-3">Différés</th><th className="p-3">Encaissements</th><th className="p-3">Sorties</th>
-                <th className="p-3">Résultat</th><th className="p-3">Actions</th>
+                <th className="p-3">Résultat</th><th className="p-3">Solde</th><th className="p-3">Actions</th>
               </tr>
             </thead>
             <tbody>
