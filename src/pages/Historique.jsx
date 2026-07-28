@@ -10,15 +10,36 @@ export default function Historique() {
   const [filtreMagasin, setFiltreMagasin] = useState('')
   const [filtreDate, setFiltreDate] = useState('')
   const [recherche, setRecherche] = useState('')
-  const [rapportSelectionné, setRapportSelectionné] = useState(null)
-  const [loading, setLoading] = useState(true)
+const [rapportSelectionné, setRapportSelectionné] = useState(null)
+const [loading, setLoading] = useState(true)
+const [versementsParMagasin, setVersementsParMagasin] = useState({})
 
-  useEffect(() => { chargerMagasins(); chargerRapports() }, [filtreMagasin, filtreDate])
+const SEUIL_JOURS_ALERTE = 3
 
-  async function chargerMagasins() {
-    const { data } = await supabase.from('magasins').select('*')
-    setMagasins(data || [])
-  }
+useEffect(() => { chargerMagasins(); chargerRapports(); chargerVersements() }, [filtreMagasin, filtreDate])
+
+async function chargerMagasins() {
+  const { data } = await supabase.from('magasins').select('*')
+  setMagasins(data || [])
+}
+
+async function chargerVersements() {
+  const { data } = await supabase.from('dernier_versement').select('*')
+  const parMagasin = {}
+  for (const v of data || []) parMagasin[v.magasin_id] = v.date_dernier_versement
+  setVersementsParMagasin(parMagasin)
+}
+
+// Un rapport est "en attente de versement" si sa date est postérieure au dernier
+// versement du magasin (ou si aucun versement n'a jamais été fait), ET que le
+// nombre de jours écoulés depuis ce dernier versement dépasse le seuil d'alerte.
+function rapportEnAttenteDeVersement(r) {
+  const dernierVersement = versementsParMagasin[r.magasin_id]
+  if (dernierVersement && r.date <= dernierVersement) return false
+  const référence = dernierVersement || r.date
+  const jours = Math.floor((new Date() - new Date(référence)) / 86400000)
+  return jours >= SEUIL_JOURS_ALERTE || !dernierVersement
+}
 
   async function chargerRapports() {
     setLoading(true)
