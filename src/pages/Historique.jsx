@@ -38,7 +38,7 @@ function rapportEnAttenteDeVersement(r) {
   if (dernierVersement && r.date <= dernierVersement) return false
   const référence = dernierVersement || r.date
   const jours = Math.floor((new Date() - new Date(référence)) / 86400000)
-  return jours >= SEUIL_JOURS_ALERTE || !dernierVersement
+  return jours >= SEUIL_JOURS_ALERTE
 }
 
   async function chargerRapports() {
@@ -127,7 +127,10 @@ function rapportEnAttenteDeVersement(r) {
                   <td className="p-3 text-primary-700 dark:text-primary-400">{Number(r.total_encaissements || 0).toLocaleString()}</td>
                   <td className="p-3">{Number(r.total_sorties).toLocaleString()}</td>
                   <td className="p-3 font-semibold">{Number(r.résultat).toLocaleString()}</td>
-                  <td className="p-3 flex gap-2">
+<td className={`p-3 font-semibold ${rapportEnAttenteDeVersement(r) ? 'text-red-500' : ''}`}>
+  {Number(r.solde).toLocaleString()}
+</td>
+<td className="p-3 flex gap-2">
                     <button onClick={() => exporterRapportUniquePDF(r)}><Eye size={18} /></button>
                     <button onClick={() => setRapportSelectionné({ ...r })}><Pencil size={18} /></button>
                     <button onClick={() => supprimerRapport(r.id)} className="text-red-500"><Trash2 size={18} /></button>
