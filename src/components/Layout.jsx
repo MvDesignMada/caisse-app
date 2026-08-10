@@ -31,6 +31,9 @@ export default function Layout({ profil, children }) {
               <Link to="/creances" className={`p-2 rounded-lg ${location.pathname === '/creances' ? 'bg-white/20' : ''}`}>
                 <Users size={22} />
               </Link>
+              <Link to="/commandes-fournisseur" className={`p-2 rounded-lg ${location.pathname === '/commandes-fournisseur' ? 'bg-white/20' : ''}`}>
+                <Package size={22} />
+              </Link>
             </>
           )}
           {profil.role === 'responsable' && (
