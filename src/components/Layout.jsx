@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Moon, Sun, LogOut, LayoutDashboard, History, Users } from 'lucide-react'
+import { Moon, Sun, LogOut, LayoutDashboard, History, Users, Package } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 export default function Layout({ profil, children }) {
@@ -32,6 +32,11 @@ export default function Layout({ profil, children }) {
                 <Users size={22} />
               </Link>
             </>
+          )}
+          {profil.role === 'responsable' && (
+            <Link to="/commande-fournisseur" className={`p-2 rounded-lg ${location.pathname === '/commande-fournisseur' ? 'bg-white/20' : ''}`}>
+              <Package size={22} />
+            </Link>
           )}
           <button onClick={toggleDark} className="p-2 rounded-lg hover:bg-white/20">
             {dark ? <Sun size={22} /> : <Moon size={22} />}
