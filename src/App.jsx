@@ -5,19 +5,17 @@ import ResponsableForm from './pages/ResponsableForm'
 import AdminDashboard from './pages/AdminDashboard'
 import Historique from './pages/Historique'
 import CreancesAdmin from './pages/CreancesAdmin'
+import CommandeFournisseurForm from './pages/CommandeFournisseurForm'
 import Layout from './components/Layout'
 
 export default function App() {
   const { session, profil, loading } = useAuth()
-
   if (loading) {
     return <div className="h-screen flex items-center justify-center text-xl">Chargement...</div>
   }
-
   if (!session || !profil) {
     return <Login />
   }
-
   return (
     <BrowserRouter>
       <Layout profil={profil}>
@@ -25,6 +23,7 @@ export default function App() {
           {profil.role === 'responsable' ? (
             <>
               <Route path="/" element={<ResponsableForm profil={profil} />} />
+              <Route path="/commande-fournisseur" element={<CommandeFournisseurForm profil={profil} />} />
               <Route path="*" element={<Navigate to="/" />} />
             </>
           ) : (
