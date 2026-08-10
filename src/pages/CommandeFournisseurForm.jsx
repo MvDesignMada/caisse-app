@@ -1,11 +1,24 @@
 import { useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+
+// Formate un nombre pour affichage : 10000 -> "10,000"
+function formatMontant(valeur) {
+  const chiffres = String(valeur ?? '').replace(/\D/g, '')
+  if (!chiffres) return ''
+  return Number(chiffres).toLocaleString('en-US')
+}
+
+// Nettoie un texte saisi pour ne garder que les chiffres bruts
+function nettoyerMontant(texte) {
+  return texte.replace(/\D/g, '')
+}
 
 export default function CommandeFournisseurForm({ profil }) {
   const [contactClient, setContactClient] = useState('')
-  const [produit, setProduit] = useState('')
-  const [quantite, setQuantite] = useState(1)
-  const [prixUnitaire, setPrixUnitaire] = useState('')
+  const [lignesProduits, setLignesProduits] = useState([
+    { id: crypto.randomUUID(), produit: '', quantite: '1', prixUnitaire: '' },
+  ])
   const [montantDevis, setMontantDevis] = useState('')
   const [acompteClient, setAcompteClient] = useState('')
   const [montantBonCommande, setMontantBonCommande] = useState('')
@@ -76,6 +89,29 @@ export default function CommandeFournisseurForm({ profil }) {
     }
   }
 
+  // Gestion des lignes produits
+  function ajouterLigne() {
+    setLignesProduits([
+      ...lignesProduits,
+      { id: crypto.randomUUID(), produit: '', quantite: '1', prixUnitaire: '' },
+    ])
+  }
+
+  function supprimerLigne(id) {
+    if (lignesProduits.length === 1) return
+    setLignesProduits(lignesProduits.filter(l => l.id !== id))
+  }
+
+  function modifierLigne(id, champ, valeur) {
+    setLignesProduits(lignesProduits.map(l => (l.id === id ? { ...l, [champ]: valeur } : l)))
+  }
+
+  const sousTotal = lignesProduits.reduce((somme, l) => {
+    const q = Number(l.quantite) || 0
+    const p = Number(l.prixUnitaire) || 0
+    return somme + q * p
+  }, 0)
+
   async function uploaderFichier(bucket, fichier) {
     const extension = fichier.name.split('.').pop()
     const chemin = `${profil.magasin_id}/${crypto.randomUUID()}.${extension}`
@@ -97,7 +133,12 @@ export default function CommandeFournisseurForm({ profil }) {
       setErreur('Le devis et le bon de commande sont obligatoires.')
       return
     }
-    if (!produit || !montantDevis || !montantBonCommande) {
+    const lignesValides = lignesProduits.every(l => l.produit.trim() && l.quantite && l.prixUnitaire)
+    if (!lignesValides) {
+      setErreur('Merci de remplir tous les produits (nom, quantité, prix).')
+      return
+    }
+    if (!montantDevis || !montantBonCommande) {
       setErreur('Merci de remplir tous les champs obligatoires.')
       return
     }
@@ -107,14 +148,18 @@ export default function CommandeFournisseurForm({ profil }) {
       const devisUrl = await uploaderFichier('devis-clients', devisFile)
       const bonCommandeUrl = await uploaderFichier('bons-commande', bonCommandeFile)
 
+      const produitsPourEnvoi = lignesProduits.map(l => ({
+        produit: l.produit.trim(),
+        quantite: Number(l.quantite),
+        prix_unitaire: Number(l.prixUnitaire),
+      }))
+
       const { error } = await supabase.from('commandes_fournisseur').insert({
         client_id: clientSelectionne.id,
         contact_client: contactClient,
         magasin_id: profil.magasin_id,
         responsable_id: profil.id,
-        produit,
-        quantite: Number(quantite),
-        prix_unitaire: prixUnitaire ? Number(prixUnitaire) : null,
+        produits: produitsPourEnvoi,
         devis_url: devisUrl,
         montant_devis: Number(montantDevis),
         acompte_client: Number(acompteClient) || 0,
@@ -126,11 +171,8 @@ export default function CommandeFournisseurForm({ profil }) {
 
       if (error) throw error
 
-      // reset du formulaire
       setContactClient('')
-      setProduit('')
-      setQuantite(1)
-      setPrixUnitaire('')
+      setLignesProduits([{ id: crypto.randomUUID(), produit: '', quantite: '1', prixUnitaire: '' }])
       setMontantDevis('')
       setAcompteClient('')
       setMontantBonCommande('')
@@ -229,43 +271,66 @@ export default function CommandeFournisseurForm({ profil }) {
       </div>
 
       <div>
-        <label className="block text-sm mb-1">Produit *</label>
-        <input
-          value={produit}
-          onChange={e => setProduit(e.target.value)}
-          className="w-full border rounded p-2"
-          required
-        />
-      </div>
-
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-sm mb-1">Quantité</label>
-          <input
-            type="number"
-            value={quantite}
-            onChange={e => setQuantite(e.target.value)}
-            className="w-full border rounded p-2"
-            min="1"
-          />
+        <label className="block text-sm mb-2">Produits *</label>
+        <div className="space-y-3">
+          {lignesProduits.map((ligne, index) => (
+            <div key={ligne.id} className="border rounded p-3 space-y-2 bg-gray-50 dark:bg-gray-900">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Produit {index + 1}</span>
+                {lignesProduits.length > 1 && (
+                  <button type="button" onClick={() => supprimerLigne(ligne.id)} className="text-red-500">
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+              <input
+                value={ligne.produit}
+                onChange={e => modifierLigne(ligne.id, 'produit', e.target.value)}
+                placeholder="Nom du produit *"
+                className="w-full border rounded p-2"
+              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs mb-1 text-gray-500">Quantité</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={ligne.quantite}
+                    onChange={e => modifierLigne(ligne.id, 'quantite', e.target.value)}
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs mb-1 text-gray-500">Prix unitaire (Ar)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatMontant(ligne.prixUnitaire)}
+                    onChange={e => modifierLigne(ligne.id, 'prixUnitaire', nettoyerMontant(e.target.value))}
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="flex-1">
-          <label className="block text-sm mb-1">Prix unitaire estimé</label>
-          <input
-            type="number"
-            value={prixUnitaire}
-            onChange={e => setPrixUnitaire(e.target.value)}
-            className="w-full border rounded p-2"
-          />
-        </div>
+        <button type="button" onClick={ajouterLigne} className="mt-2 flex items-center gap-1 text-sm text-primary-600">
+          <Plus size={16} /> Ajouter un produit
+        </button>
+        {sousTotal > 0 && (
+          <p className="text-sm text-gray-500 mt-2">
+            Sous-total calculé : {sousTotal.toLocaleString('en-US')} Ar
+          </p>
+        )}
       </div>
 
       <div>
         <label className="block text-sm mb-1">Montant du devis (Ar) *</label>
         <input
-          type="number"
-          value={montantDevis}
-          onChange={e => setMontantDevis(e.target.value)}
+          type="text"
+          inputMode="numeric"
+          value={formatMontant(montantDevis)}
+          onChange={e => setMontantDevis(nettoyerMontant(e.target.value))}
           className="w-full border rounded p-2"
           required
         />
@@ -274,9 +339,10 @@ export default function CommandeFournisseurForm({ profil }) {
       <div>
         <label className="block text-sm mb-1">Acompte versé par le client</label>
         <input
-          type="number"
-          value={acompteClient}
-          onChange={e => setAcompteClient(e.target.value)}
+          type="text"
+          inputMode="numeric"
+          value={formatMontant(acompteClient)}
+          onChange={e => setAcompteClient(nettoyerMontant(e.target.value))}
           className="w-full border rounded p-2"
         />
       </div>
@@ -295,9 +361,10 @@ export default function CommandeFournisseurForm({ profil }) {
       <div>
         <label className="block text-sm mb-1">Montant du bon de commande (Ar) *</label>
         <input
-          type="number"
-          value={montantBonCommande}
-          onChange={e => setMontantBonCommande(e.target.value)}
+          type="text"
+          inputMode="numeric"
+          value={formatMontant(montantBonCommande)}
+          onChange={e => setMontantBonCommande(nettoyerMontant(e.target.value))}
           className="w-full border rounded p-2"
           required
         />
