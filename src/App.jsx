@@ -6,6 +6,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import Historique from './pages/Historique'
 import CreancesAdmin from './pages/CreancesAdmin'
 import CommandeFournisseurForm from './pages/CommandeFournisseurForm'
+import CommandesFournisseurAdmin from './pages/CommandesFournisseurAdmin'
 import Layout from './components/Layout'
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/" element={<AdminDashboard />} />
               <Route path="/historique" element={<Historique />} />
               <Route path="/creances" element={<CreancesAdmin />} />
+              <Route path="/commandes-fournisseur" element={<CommandesFournisseurAdmin />} />
               <Route path="*" element={<Navigate to="/" />} />
             </>
           )}
