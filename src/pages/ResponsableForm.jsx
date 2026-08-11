@@ -21,6 +21,8 @@ export default function ResponsableForm({ profil }) {
   const [estVersement, setEstVersement] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [envoiEnCours, setEnvoiEnCours] = useState(false)
+  const [envoiReussi, setEnvoiReussi] = useState(false)
 
   useEffect(() => { chargerRapportDuJour() }, [])
 
@@ -125,13 +127,27 @@ export default function ResponsableForm({ profil }) {
   }
 
   async function envoyerRapport() {
+    if (envoiEnCours) return
     if (!confirm('Envoyer le rapport ? Il ne sera plus modifiable après.')) return
-    await supabase.from('rapports').update({
-      espèces: parseFloat(espèces) || 0,
-      observation,
-      statut: 'validé',
-    }).eq('id', rapport.id)
-    chargerRapportDuJour()
+
+    setEnvoiEnCours(true)
+    try {
+      const { error } = await supabase.from('rapports').update({
+        espèces: parseFloat(espèces) || 0,
+        observation,
+        statut: 'validé',
+      }).eq('id', rapport.id)
+
+      if (error) throw error
+
+      await chargerRapportDuJour()
+      setEnvoiReussi(true)
+      setTimeout(() => setEnvoiReussi(false), 4000)
+    } catch (err) {
+      alert('Erreur lors de l\'envoi : ' + err.message + '\nRéessayez.')
+    } finally {
+      setEnvoiEnCours(false)
+    }
   }
 
   if (loading) return <p className="text-center mt-10">Chargement...</p>
@@ -286,9 +302,19 @@ export default function ResponsableForm({ profil }) {
       </section>
 
       {!verrouillé && (
-        <button onClick={envoyerRapport} className="btn-big bg-primary-600 text-white w-full flex items-center justify-center gap-2 fixed bottom-4 left-4 right-4 max-w-5xl mx-auto">
-          <Send size={20} /> Envoyer le rapport
+        <button
+          onClick={envoyerRapport}
+          disabled={envoiEnCours}
+          className="btn-big bg-primary-600 text-white w-full flex items-center justify-center gap-2 fixed bottom-4 left-4 right-4 max-w-5xl mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Send size={20} /> {envoiEnCours ? 'Envoi en cours...' : 'Envoyer le rapport'}
         </button>
+      )}
+
+      {envoiReussi && (
+        <div className="fixed top-4 left-4 right-4 max-w-5xl mx-auto bg-green-600 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 z-50">
+          <CheckCircle size={20} /> Rapport envoyé avec succès.
+        </div>
       )}
     </div>
   )
