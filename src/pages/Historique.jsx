@@ -230,7 +230,7 @@ export default function Historique() {
       )}
 
       {rapportSelectionné && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-lg space-y-3 my-8">
             <h2 className="font-bold text-lg">Modifier le rapport</h2>
 
