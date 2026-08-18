@@ -4,10 +4,17 @@ import autoTable from 'jspdf-autotable'
 
 const HEADERS = ['Date', 'Magasin', 'Responsable', 'Espèces', 'Chèque', 'Mobile Money', 'Différés', 'Encaissements', 'Sorties', 'Résultat', 'Solde caisse']
 
+// Formate un nombre avec des virgules comme séparateur de milliers : 13455000 -> "13,455,000"
+function fmt(valeur) {
+  if (valeur === null || valeur === undefined || valeur === '') return ''
+  return Number(valeur).toLocaleString('en-US')
+}
+
 function toRows(rapports) {
   return rapports.map((r) => [
     r.date, r.magasins?.nom || '', r.profils?.nom || '',
-    r.espèces, r.chèque, r.mobile_money, r.différés, r.total_encaissements || 0, r.total_sorties, r.résultat, r.solde,
+    fmt(r.espèces), fmt(r.chèque), fmt(r.mobile_money), fmt(r.différés),
+    fmt(r.total_encaissements || 0), fmt(r.total_sorties), fmt(r.résultat), fmt(r.solde),
   ])
 }
 
@@ -45,23 +52,27 @@ export function exporterRapportUniquePDF(rapport) {
   autoTable(doc, {
     startY: 40,
     body: [
-      ['Espèces', rapport.espèces],
-      ['Chèque', rapport.chèque],
-      ['Mobile Money', rapport.mobile_money],
-      ['Différés', rapport.différés],
-      ['Total ventes', rapport.total_ventes],
-      ['Encaissements clients (dettes anciennes)', rapport.total_encaissements || 0],
-      ['Total sorties', rapport.total_sorties],
-      ['Résultat', rapport.résultat],
-      ['Cash veille', rapport.solde_veille],
-      ['Cash physique en caisse', rapport.solde],
+      ['Espèces', fmt(rapport.espèces)],
+      ['Chèque', fmt(rapport.chèque)],
+      ['Mobile Money', fmt(rapport.mobile_money)],
+      ['Différés', fmt(rapport.différés)],
+      ['Total ventes', fmt(rapport.total_ventes)],
+      ['Encaissements clients (dettes anciennes)', fmt(rapport.total_encaissements || 0)],
+      ['Total sorties', fmt(rapport.total_sorties)],
+      ['Résultat', fmt(rapport.résultat)],
+      ['Cash veille', fmt(rapport.solde_veille)],
+      ['Cash physique en caisse', fmt(rapport.solde)],
     ],
   })
   if (rapport.sorties?.length) {
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
       head: [['Libellé', 'Catégorie', 'Montant']],
-      body: rapport.sorties.map((s) => [s.libellé, s.categorie_depense || (s.catégorie === 'versement' ? 'Versement' : '-'), s.montant]),
+      body: rapport.sorties.map((s) => [
+        s.libellé,
+        s.categorie_depense || (s.catégorie === 'versement' ? 'Versement' : '-'),
+        fmt(s.montant),
+      ]),
     })
   }
   doc.save(`rapport-${rapport.date}.pdf`)
