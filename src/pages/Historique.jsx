@@ -112,11 +112,11 @@ export default function Historique() {
         date: r.date,
         magasin_id: r.magasin_id,
         responsable_id: r.responsable_id,
-        espèces: r.espèces,
-        chèque: r.chèque,
-        mobile_money: r.mobile_money,
-        différés: r.différés,
-        solde_veille: r.solde_veille,
+                espèces: Number(r.espèces) || 0,
+        chèque: Number(r.chèque) || 0,
+        mobile_money: Number(r.mobile_money) || 0,
+        différés: Number(r.différés) || 0,
+        solde_veille: Number(r.solde_veille) || 0,
         observation: r.observation,
       }).eq('id', r.id)
       if (erreurRapport) throw erreurRapport
