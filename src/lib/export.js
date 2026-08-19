@@ -77,3 +77,38 @@ export function exporterRapportUniquePDF(rapport) {
   }
   doc.save(`rapport-${rapport.date}.pdf`)
 }
+export function apercuRapportUniquePDF(rapport) {
+  const doc = new jsPDF()
+  doc.setFontSize(16)
+  doc.text(`Rapport de caisse - ${rapport.magasins?.nom || ''}`, 14, 15)
+  doc.setFontSize(11)
+  doc.text(`Date : ${rapport.date}`, 14, 25)
+  doc.text(`Responsable : ${rapport.profils?.nom || ''}`, 14, 32)
+  autoTable(doc, {
+    startY: 40,
+    body: [
+      ['Espèces', fmt(rapport.espèces)],
+      ['Chèque', fmt(rapport.chèque)],
+      ['Mobile Money', fmt(rapport.mobile_money)],
+      ['Différés', fmt(rapport.différés)],
+      ['Total ventes', fmt(rapport.total_ventes)],
+      ['Encaissements clients (dettes anciennes)', fmt(rapport.total_encaissements || 0)],
+      ['Total sorties', fmt(rapport.total_sorties)],
+      ['Résultat', fmt(rapport.résultat)],
+      ['Cash veille', fmt(rapport.solde_veille)],
+      ['Cash physique en caisse', fmt(rapport.solde)],
+    ],
+  })
+  if (rapport.sorties?.length) {
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [['Libellé', 'Catégorie', 'Montant']],
+      body: rapport.sorties.map((s) => [
+        s.libellé,
+        s.categorie_depense || (s.catégorie === 'versement' ? 'Versement' : '-'),
+        fmt(s.montant),
+      ]),
+    })
+  }
+  window.open(doc.output('bloburl'), '_blank')
+}
