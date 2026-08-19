@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { exporterExcel, exporterCSV, exporterPDF, exporterRapportUniquePDF } from '../lib/export'
+import { exporterExcel, exporterCSV, exporterPDF, apercuRapportUniquePDF } from '../lib/export'
 import { Eye, Pencil, Trash2, Download, FileSpreadsheet, FileText, Plus, ExternalLink } from 'lucide-react'
 import MontantInput from '../components/MontantInput'
 
@@ -218,7 +218,7 @@ export default function Historique() {
                     {Number(r.solde).toLocaleString()}
                   </td>
                   <td className="p-3 flex gap-2">
-                    <button onClick={() => exporterRapportUniquePDF(r)}><Eye size={18} /></button>
+                    <button onClick={() => apercuRapportUniquePDF(r)}><Eye size={18} /></button>
                     <button onClick={() => ouvrirModaleEdition(r)}><Pencil size={18} /></button>
                     <button onClick={() => supprimerRapport(r.id)} className="text-red-500"><Trash2 size={18} /></button>
                   </td>
